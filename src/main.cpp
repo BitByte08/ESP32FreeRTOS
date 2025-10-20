@@ -38,13 +38,27 @@ void Task2(void *parameter) {
   }
 }
 
+void inline TaskSuspend(void) {
+  vTaskSuspend(Task1Handle);
+  vTaskSuspend(Task2Handle);
+}
+void inline TaskResume(void) {
+  vTaskResume(Task1Handle);
+  vTaskResume(Task2Handle);
+}
+
 void TaskBtn(void *parameter) {
   for (;;) {
     static bool currentBtnState = false;
+    static bool toggleState = false;
     if (!digitalRead(BTN_PIN)&&currentBtnState) {
       Serial.println("TaskBtn: Button Press");
+      toggleState = !toggleState;
+      if (toggleState) TaskSuspend();
+      else TaskResume();
     }
     currentBtnState = digitalRead(BTN_PIN);
+    vTaskDelay(50 / portTICK_RATE_MS);
   }
 }
 
