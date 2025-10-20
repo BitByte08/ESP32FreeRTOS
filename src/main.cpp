@@ -2,9 +2,11 @@
 
 #define LED_PIN1 32
 #define LED_PIN2 33
+#define BTN_PIN 14 // PULLUP BTN
 
 TaskHandle_t Task1Handle = NULL;
 TaskHandle_t Task2Handle = NULL;
+TaskHandle_t TaskBtnHandle = NULL;
 
 void Task1(void *parameter) {
   for (;;) {
@@ -15,10 +17,9 @@ void Task1(void *parameter) {
     Serial.println("Task 1: LED OFF");
     vTaskDelay(1000 / portTICK_RATE_MS);
 
-    Serial.print("Task1 running on core ");
-    Serial.println(xPortGetCoreID());
+    Serial.println("Task1 running on core " + static_cast<String>(xPortGetCoreID()));
 
-    Serial.printf("Task1 Stack Free: %u byte", uxTaskGetStackHighWaterMark(NULL));
+    Serial.printf("Task1 Stack Free: %u bytes\n", uxTaskGetStackHighWaterMark(NULL));
   }
 }
 
@@ -31,10 +32,19 @@ void Task2(void *parameter) {
     Serial.println("Task 2: LED OFF");
     vTaskDelay(1000 / portTICK_RATE_MS);
 
-    Serial.print("Task2 running on core ");
-    Serial.println(xPortGetCoreID());
+    Serial.println("Task2 running on core " + static_cast<String>(xPortGetCoreID()));
 
-    Serial.printf("Task2 Stack Free: %u byte", uxTaskGetStackHighWaterMark(NULL));
+    Serial.printf("Task2 Stack Free: %u bytes\n", uxTaskGetStackHighWaterMark(NULL));
+  }
+}
+
+void TaskBtn(void *parameter) {
+  for (;;) {
+    static bool currentBtnState = false;
+    if (!digitalRead(BTN_PIN)&&currentBtnState) {
+      Serial.println("TaskBtn: Button Press");
+    }
+    currentBtnState = digitalRead(BTN_PIN);
   }
 }
 
@@ -42,10 +52,11 @@ void setup() {
   Serial.begin(115200);
 
   delay(100);
-  Serial.printf("Start FreeRTOS: Memory Usage\nInitial Free Heap: %u byte", xPortGetFreeHeapSize());
+  Serial.printf("Start FreeRTOS: Memory Usage\nInitial Free Heap: %u bytes\n", xPortGetFreeHeapSize());
 
   pinMode(LED_PIN1, OUTPUT);
   pinMode(LED_PIN2, OUTPUT);
+  pinMode(BTN_PIN, INPUT);
 
   xTaskCreatePinnedToCore(
     Task1,
@@ -65,6 +76,14 @@ void setup() {
     &Task2Handle,
     1
   );
+  xTaskCreatePinnedToCore(
+    TaskBtn,
+    "TaskBtn",
+    10000,
+    NULL,
+    1,
+    &TaskBtnHandle,
+    1);
 }
 
 void loop() {
